@@ -329,7 +329,7 @@ func parseInfiniBandCounters(portPath string) (*InfiniBandCounters, error) {
 			// https://www.spinics.net/lists/linux-rdma/msg68596.html
 			// Remove this as soon as the fix lands in the enterprise distros.
 			if strings.Contains(value, "N/A (no PMA)") {
-                return 0, nil
+				return 0, nil
 			}
 			return nil, err
 		}
