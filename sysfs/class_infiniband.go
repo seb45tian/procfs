@@ -247,7 +247,7 @@ func parseInfiniBandCounters(portPath string) (*InfiniBandCounters, error) {
 
 	path := filepath.Join(portPath, "counters")
 	files, err := ioutil.ReadDir(path)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 
