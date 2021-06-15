@@ -64,7 +64,7 @@ func TestMountStats(t *testing.T) {
 		},
 		{
 			name:    "NFSv4 device with too little info",
-			s:       "device 192.168.1.1:/srv mounted on /mnt/nfs with fstype nfs4 statvers=1.1\nhello",
+			s:       "device 192.168.1.1:/srv mounted on /mnt/nfs with fstype nfs4 statvers=1.1\nopts:",
 			invalid: true,
 		},
 		{
@@ -254,6 +254,26 @@ func TestMountStats(t *testing.T) {
 			}},
 		},
 		{
+			name: "NFS4.1 device with multiline impl_id OK",
+			s:    "device 192.168.0.1:/srv mounted on /mnt/nfs with fstype nfs4 statvers=1.1\nopts: rw,vers=4.1,rsize=131072,wsize=131072,namlen=255,acregmin=3,acregmax=60,acdirmin=30,acdirmax=60,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=192.168.0.2,fsc,local_lock=none\nage: 1234567\nimpl_id: name='FreeBSD 11.2-STABLE #0 r325575+c9231c7d6bd(HEAD): Mon Nov 18 22:46:47 UTC 2019\nuser@host:/path/to/something'\n,domain='something.org',date='1293840000,0'",
+			mounts: []*Mount{{
+				Device: "192.168.0.1:/srv",
+				Mount:  "/mnt/nfs",
+				Type:   "nfs4",
+				Stats: &MountStatsNFS{
+					StatVersion: "1.1",
+					Opts: map[string]string{"rw": "", "vers": "4.1",
+						"rsize": "131072", "wsize": "131072", "namlen": "255", "acregmin": "3",
+						"acregmax": "60", "acdirmin": "30", "acdirmax": "60", "fsc": "", "hard": "",
+						"proto": "tcp", "timeo": "600", "retrans": "2",
+						"sec": "sys", "clientaddr": "192.168.0.2",
+						"local_lock": "none",
+					},
+					Age: 1234567 * time.Second,
+				},
+			}},
+		},
+		{
 			name: "fixtures/proc OK",
 			mounts: []*Mount{
 				{
@@ -373,7 +393,7 @@ func TestMountStats(t *testing.T) {
 			t.Error("expected an error, but none occurred")
 		}
 		if !tt.invalid && err != nil {
-			t.Errorf("unexpected error: %v", err)
+			t.Errorf("unexpected error: %w", err)
 		}
 
 		if want, have := tt.mounts, mounts; !reflect.DeepEqual(want, have) {
@@ -398,7 +418,7 @@ func mountsStr(mounts []*Mount) string {
 		out += fmt.Sprintf("\n\t- bytes: %v", stats.Bytes)
 		out += fmt.Sprintf("\n\t- events: %v", stats.Events)
 		out += fmt.Sprintf("\n\t- transport: %v", stats.Transport)
-		out += fmt.Sprintf("\n\t- per-operation stats:")
+		out += "\n\t- per-operation stats:"
 
 		for _, o := range stats.Operations {
 			out += fmt.Sprintf("\n\t\t- %v", o)
@@ -414,7 +434,7 @@ func TestMountStatsExtendedOperationStats(t *testing.T) {
 	r := strings.NewReader(extendedOpsExampleMountstats)
 	_, err := parseMountStats(r)
 	if err != nil {
-		t.Errorf("failed to parse mount stats with extended per-op statistics: %v", err)
+		t.Errorf("failed to parse mount stats with extended per-op statistics: %w", err)
 	}
 }
 

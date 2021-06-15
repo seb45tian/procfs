@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !windows
+// +build linux
 
 package sysfs
 
@@ -42,26 +42,28 @@ type InfiniBandCounters struct {
 	LegacyPortXmitData64           *uint64 // counters_ext/port_xmit_data_64
 	LegacyPortXmitPackets64        *uint64 // counters_ext/port_xmit_packets_64
 
-	LinkDowned                  *uint64 // counters/link_downed
-	LinkErrorRecovery           *uint64 // counters/link_error_recovery
-	MulticastRcvPackets         *uint64 // counters/multicast_rcv_packets
-	MulticastXmitPackets        *uint64 // counters/multicast_xmit_packets
-	PortRcvConstraintErrors     *uint64 // counters/port_rcv_constraint_errors
-	PortRcvData                 *uint64 // counters/port_rcv_data
-	PortRcvDiscards             *uint64 // counters/port_rcv_discards
-	PortRcvErrors               *uint64 // counters/port_rcv_errors
-	PortRcvPackets              *uint64 // counters/port_rcv_packets
-	PortRcvRemotePhysicalErrors *uint64 // counters/port_rcv_remote_physical_errors
-	PortRcvSwitchRelayErrors    *uint64 // counters/port_rcv_switch_relay_errors
-	PortXmitConstraintErrors    *uint64 // counters/port_xmit_constraint_errors
-	PortXmitData                *uint64 // counters/port_xmit_data
-	PortXmitDiscards            *uint64 // counters/port_xmit_discards
-	PortXmitPackets             *uint64 // counters/port_xmit_packets
-	PortXmitWait                *uint64 // counters/port_xmit_wait
-	SymbolError                 *uint64 // counters/symbol_error
-	UnicastRcvPackets           *uint64 // counters/unicast_rcv_packets
-	UnicastXmitPackets          *uint64 // counters/unicast_xmit_packets
-	VL15Dropped                 *uint64 // counters/VL15_dropped
+	ExcessiveBufferOverrunErrors *uint64 // counters/excessive_buffer_overrun_errors
+	LinkDowned                   *uint64 // counters/link_downed
+	LinkErrorRecovery            *uint64 // counters/link_error_recovery
+	LocalLinkIntegrityErrors     *uint64 // counters/local_link_integrity_errors
+	MulticastRcvPackets          *uint64 // counters/multicast_rcv_packets
+	MulticastXmitPackets         *uint64 // counters/multicast_xmit_packets
+	PortRcvConstraintErrors      *uint64 // counters/port_rcv_constraint_errors
+	PortRcvData                  *uint64 // counters/port_rcv_data
+	PortRcvDiscards              *uint64 // counters/port_rcv_discards
+	PortRcvErrors                *uint64 // counters/port_rcv_errors
+	PortRcvPackets               *uint64 // counters/port_rcv_packets
+	PortRcvRemotePhysicalErrors  *uint64 // counters/port_rcv_remote_physical_errors
+	PortRcvSwitchRelayErrors     *uint64 // counters/port_rcv_switch_relay_errors
+	PortXmitConstraintErrors     *uint64 // counters/port_xmit_constraint_errors
+	PortXmitData                 *uint64 // counters/port_xmit_data
+	PortXmitDiscards             *uint64 // counters/port_xmit_discards
+	PortXmitPackets              *uint64 // counters/port_xmit_packets
+	PortXmitWait                 *uint64 // counters/port_xmit_wait
+	SymbolError                  *uint64 // counters/symbol_error
+	UnicastRcvPackets            *uint64 // counters/unicast_rcv_packets
+	UnicastXmitPackets           *uint64 // counters/unicast_xmit_packets
+	VL15Dropped                  *uint64 // counters/VL15_dropped
 }
 
 // InfiniBandPort contains info from files in
@@ -126,11 +128,15 @@ func (fs FS) parseInfiniBandDevice(name string) (*InfiniBandDevice, error) {
 		name := filepath.Join(path, f)
 		value, err := util.SysReadFile(name)
 		if err != nil {
+<<<<<<< HEAD
             // Not all InfiniBand drivers provide hca_type.
 			if os.IsNotExist(err) && (f == "hca_type") {
 				continue
 			}
 			return nil, fmt.Errorf("failed to read file %q: %v", name, err)
+=======
+			return nil, fmt.Errorf("failed to read file %q: %w", name, err)
+>>>>>>> e8361a78447375e011eba5d699109138d0afc530
 		}
 
 		switch f {
@@ -146,7 +152,7 @@ func (fs FS) parseInfiniBandDevice(name string) (*InfiniBandDevice, error) {
 	portsPath := filepath.Join(path, "ports")
 	ports, err := ioutil.ReadDir(portsPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list InfiniBand ports at %q: %v", portsPath, err)
+		return nil, fmt.Errorf("failed to list InfiniBand ports at %q: %w", portsPath, err)
 	}
 
 	device.Ports = make(map[uint]InfiniBandPort, len(ports))
@@ -179,9 +185,9 @@ func parseState(s string) (uint, string, error) {
 
 // Parse rate (example: "100 Gb/sec (4X EDR)") and return it as bytes/second
 func parseRate(s string) (uint64, error) {
-	parts := strings.Split(s, "Gb/sec")
+	parts := strings.SplitAfterN(s, " ", 2)
 	if len(parts) != 2 {
-		return 0, fmt.Errorf("failed to split '%s' by 'Gb/sec'", s)
+		return 0, fmt.Errorf("failed to split %q", s)
 	}
 	value, err := strconv.ParseFloat(strings.TrimSpace(parts[0]), 32)
 	if err != nil {
@@ -208,7 +214,7 @@ func (fs FS) parseInfiniBandPort(name string, port string) (*InfiniBandPort, err
 	}
 	id, name, err := parseState(string(content))
 	if err != nil {
-		return nil, fmt.Errorf("could not parse state file in %s: %s", portPath, err)
+		return nil, fmt.Errorf("could not parse state file in %q: %w", portPath, err)
 	}
 	ibp.State = name
 	ibp.StateID = id
@@ -219,7 +225,7 @@ func (fs FS) parseInfiniBandPort(name string, port string) (*InfiniBandPort, err
 	}
 	id, name, err = parseState(string(content))
 	if err != nil {
-		return nil, fmt.Errorf("could not parse phys_state file in %s: %s", portPath, err)
+		return nil, fmt.Errorf("could not parse phys_state file in %q: %w", portPath, err)
 	}
 	ibp.PhysState = name
 	ibp.PhysStateID = id
@@ -230,7 +236,7 @@ func (fs FS) parseInfiniBandPort(name string, port string) (*InfiniBandPort, err
 	}
 	ibp.Rate, err = parseRate(string(content))
 	if err != nil {
-		return nil, fmt.Errorf("could not parse rate file in %s: %s", portPath, err)
+		return nil, fmt.Errorf("could not parse rate file in %q: %w", portPath, err)
 	}
 
 	counters, err := parseInfiniBandCounters(portPath)
@@ -262,7 +268,7 @@ func parseInfiniBandCounters(portPath string) (*InfiniBandCounters, error) {
 			if os.IsNotExist(err) || os.IsPermission(err) || err.Error() == "operation not supported" || err.Error() == "invalid argument" {
 				continue
 			}
-			return nil, fmt.Errorf("failed to read file %q: %v", name, err)
+			return nil, fmt.Errorf("failed to read file %q: %w", name, err)
 		}
 
 		// According to Mellanox, the metrics port_rcv_data, port_xmit_data,
@@ -274,10 +280,14 @@ func parseInfiniBandCounters(portPath string) (*InfiniBandCounters, error) {
 		vp := util.NewValueParser(value)
 
 		switch f.Name() {
+		case "excessive_buffer_overrun_errors":
+			counters.ExcessiveBufferOverrunErrors = vp.PUInt64()
 		case "link_downed":
 			counters.LinkDowned = vp.PUInt64()
 		case "link_error_recovery":
 			counters.LinkErrorRecovery = vp.PUInt64()
+		case "local_link_integrity_errors":
+			counters.LocalLinkIntegrityErrors = vp.PUInt64()
 		case "multicast_rcv_packets":
 			counters.MulticastRcvPackets = vp.PUInt64()
 		case "multicast_xmit_packets":
@@ -353,7 +363,7 @@ func parseInfiniBandCounters(portPath string) (*InfiniBandCounters, error) {
 			if os.IsNotExist(err) || os.IsPermission(err) || err.Error() == "operation not supported" || err.Error() == "invalid argument" {
 				continue
 			}
-			return nil, fmt.Errorf("failed to read file %q: %v", name, err)
+			return nil, fmt.Errorf("failed to read file %q: %w", name, err)
 		}
 
 		vp := util.NewValueParser(value)

@@ -1,4 +1,4 @@
-// Copyright 2019 The Prometheus Authors
+// Copyright 2020 The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -16,37 +16,31 @@
 package sysfs
 
 import (
-	"reflect"
 	"testing"
 )
 
-func TestClassCoolingDeviceStats(t *testing.T) {
+func TestParseVMStatNUMA(t *testing.T) {
 	fs, err := NewFS(sysTestFixtures)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	coolingDeviceTest, err := fs.ClassCoolingDeviceStats()
+	vmstat, err := fs.VMStatNUMA()
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	classCoolingDeviceStats := []ClassCoolingDeviceStats{
-		{
-			Name:     "0",
-			Type:     "Processor",
-			MaxState: 50,
-			CurState: 0,
-		},
-		{
-			Name:     "1",
-			Type:     "intel_powerclamp",
-			MaxState: 27,
-			CurState: -1,
-		},
+	if want, got := uint64(1), vmstat[1].NrFreePages; want != got {
+		t.Errorf("want vmstat stat nr_free_pages value %d, got %d", want, got)
 	}
 
-	if !reflect.DeepEqual(classCoolingDeviceStats, coolingDeviceTest) {
-		t.Errorf("Result not correct: want %v, have %v", classCoolingDeviceStats, coolingDeviceTest)
+	if want, got := uint64(5), vmstat[1].NrZoneActiveFile; want != got {
+		t.Errorf("want numa stat nr_zone_active_file %d, got %d", want, got)
+	}
+	if want, got := uint64(7), vmstat[2].NrFreePages; want != got {
+		t.Errorf("want vmstat stat nr_free_pages value %d, got %d", want, got)
+	}
+
+	if want, got := uint64(11), vmstat[2].NrZoneActiveFile; want != got {
+		t.Errorf("want numa stat nr_zone_active_file %d, got %d", want, got)
 	}
 }
